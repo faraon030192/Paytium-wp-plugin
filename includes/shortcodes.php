@@ -134,13 +134,16 @@ function pt_paytium_shortcode( $attr, $content = null ) {
 		$html .= '<label for="pt-customer-details-country">Land:</label><input type="text" name="pt-customer-details-country" class="pt-customer-details-country" value="" />';
 	}
 
-	// Add a filter here to allow developers to hook into the form
-	$filter_html = '';
-	$html .= apply_filters( 'pt_before_payment_button', $filter_html );
+	if(!has_shortcode($content,'paytium_button'))
+    {
+        // Add a filter here to allow developers to hook into the form
+        $filter_html = '';
+        $html .= apply_filters( 'pt_before_payment_button', $filter_html );
 
-	// Payment button defaults to built-in Paytium class "paytium-button-el" unless set to "none".
-	$html .= '<button class="pt-payment-btn' . ( $button_style == 'none' ? '' : ' paytium-button-el' ) . '"><span>' . $button_label . '</span></button>';
+        // Payment button defaults to built-in Paytium class "paytium-button-el" unless set to "none".
+        $html .= '<button class="pt-payment-btn' . ( $button_style == 'none' ? '' : ' paytium-button-el' ) . '"><span>' . $button_label . '</span></button>';
 
+    }
 	$html .= '</form>';
 
 	$error_count = Paytium_Shortcode_Tracker::get_error_count();
@@ -733,6 +736,42 @@ function pt_field( $attributes ) {
 
 }
 add_shortcode( 'paytium_field', 'pt_field' );
+/**
+ * Function to add button with different types - [paytium_button]
+ *
+ * @since  1.1.0
+ * @author Alex Saydan
+ */
+function pt_button( $attributes ) {
+
+    global $counter;
+
+    $attr = shortcode_atts(array(
+        'label' => get_option('pt_paytium_button', ''),
+        'class' => 'paytium-button-el',
+        'style' => '',
+    ), $attributes, 'paytium_button');
+
+	extract( $attr );
+
+	Paytium_Shortcode_Tracker::add_new_shortcode( 'paytium_button_' . $counter, 'paytium_button', $attr, false );
+
+	$html = '';
+
+	$args = pt_get_args( '', $attr, $counter );
+
+    // Add a filter here to allow developers to hook into the form
+    $filter_html = '';
+    $html .= apply_filters( 'pt_before_payment_button', $filter_html );
+
+    // Payment button.
+    $html .= '<button class="pt-payment-btn ' . $class . '"' . (!empty($style) ? ' style="' . $style . '" ' : '') . '><span>' . $label . '</span></button>';
+    $counter++;
+
+	return apply_filters( 'pt_paytium_button', $html, $args );
+
+}
+add_shortcode( 'paytium_button', 'pt_button' );
 
 /**
  * Function to add the custom user amount textbox via shortcode - [paytium_amount]
@@ -1025,7 +1064,7 @@ function pt_cf_radio( $attr ) {
 		         ' class="' . esc_attr( $id ) . '_' . $i . $quantity_class . $amount_class . '" data-parsley-errors-container=".pt-form-group" ' . $quantity_html . '>';
 		$html .= '<span>' . ( isset( $option_name ) ? $option_name : $option ) . '</span>';
 		$html .= '</label>';
-    
+
 		$i ++;
 	}
 
